@@ -1,0 +1,88 @@
+esphome:
+  name: pir-sensors
+  friendly_name: pir
+  name_add_mac_suffix: true
+  project: 
+    name: "Zenz.PIR"
+    version: "1.0.0"
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+# You can generate your API key with following URL
+# https://esphome.io/components/api.html?highlight=randomly%20generated
+api:
+  encryption:
+    key: "your_api_key_here"
+
+ota:
+  - platform: esphome
+    password: "ff51747c81ad167b81903a9281833815"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Pir Sensors Fallback Hotspot"
+    password: "hotspont_password_here"
+
+captive_portal:
+
+globals:
+  - id: binary_sensor_on_count
+    type: int
+    restore_value: yes
+    initial_value: '0'
+  - id: last_activation_time
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+binary_sensor:
+  - platform: gpio
+    pin: 1
+    name: "PIR Sensor"
+    device_class: motion
+    icon: mdi:account
+    publish_initial_state: true
+    filters:
+      - delayed_on: 500ms
+      - delayed_off: 5s
+    on_press:
+      then:
+        - lambda: |-
+            id(last_activation_time) = millis() / 1000;
+    on_release:
+      then:
+        - lambda: |-
+            int duration = (millis() / 1000) - id(last_activation_time);
+            if (duration >= 60) {
+              id(binary_sensor_on_count) += 1;
+            }
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+sensor:
+  - platform: template
+    name: "Binary Sensor On Count"
+    id: binary_sensor_on_count_sensor
+    accuracy_decimals: 0
+    update_interval: 60s
+    lambda: |-
+      return id(binary_sensor_on_count);
+
+interval:
+  - interval: 24h
+    then:
+      - lambda: |-
+          id(binary_sensor_on_count) = 0;
