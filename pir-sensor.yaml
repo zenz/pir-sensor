@@ -36,6 +36,12 @@ wifi:
 
 captive_portal:
 
+# Configure GPIO4 as PULLDOWN without exposing it as a sensor
+custom_component:
+  - lambda: |-
+      pinMode(4, INPUT_PULLDOWN);
+      return {};
+
 globals:
   - id: binary_sensor_on_count
     type: int
